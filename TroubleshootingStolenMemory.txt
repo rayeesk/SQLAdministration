@@ -1,0 +1,20 @@
+select session_id,wait_type,* from sys.dm_exec_requests
+
+
+2
+3
+SELECT object_name, counter_name, cntr_value
+FROM sys.dm_os_performance_counters
+WHERE [counter_name] = 'Total Server Memory (KB)'
+SELECT object_name, counter_name, cntr_value
+FROM sys.dm_os_performance_counters
+WHERE [counter_name] = 'Stolen Server Memory (KB)'
+
+SELECT object_name, counter_name, cntr_value
+FROM sys.dm_os_performance_counters
+WHERE [counter_name] like '%Database pages%'
+
+
+Dbcc Memorystatus
+
+Always check Target Committed and Current Committed.

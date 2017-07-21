@@ -1,0 +1,4 @@
+create table #tempcount (tablename nvarchar(128), record_count bigint)
+EXEC sp_msforeachtable 'insert #tempcount select ''?'', count(*) from ? with (nolock)'
+select * from #tempcount
+drop table #tempcount

@@ -1,0 +1,1 @@
+select object_name(a.object_id) as Table_Name, name as Index_Name, scans_started as Number_of_Scans from sys.indexes a inner join sys.dm_db_xtp_index_stats b ON b.index_id = a.index_id and a.object_id = b.object_id AND is_primary_key = '0' order by scans_started asc

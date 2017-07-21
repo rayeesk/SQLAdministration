@@ -1,0 +1,12 @@
+ use Extended event to track all the Deadlocks - a new feature compared to SQL Profiler 
+CREATE EVENT SESSION [DeadLocks] ON SERVER 
+ADD EVENT sqlserver.blocked_process_report, 
+ADD EVENT sqlserver.lock_deadlock_chain, 
+ADD EVENT sqlserver.xml_deadlock_report( 
+ACTION(sqlos.worker_address,sqlserver.client_app_name,sqlserver.client_hostname,sqlserver.client_pid,sqlserver.database_id,sqlserver.database_name,sqlserver.query_plan_hash,sqlserver.session_id,sqlserver.session_nt_username,sqlserver.sql_text,sqlserver.username)) 
+ADD TARGET package0.event_file(SET filename=N'E:MSSQL_DATAMSSQL11.MSSQLSERVERMSSQLLogDeadLocks.xel'), 
+ADD TARGET package0.histogram(SET filtering_event_name=N'sqlserver.lock_acquired',source=N'sqlserver.query_hash') 
+WITH (MAX_MEMORY=4096 KB,EVENT_RETENTION_MODE=ALLOW_SINGLE_EVENT_LOSS,MAX_DISPATCH_LATENCY=30 SECONDS,MAX_EVENT_SIZE=0 KB,MEMORY_PARTITION_MODE=NONE,TRACK_CAUSALITY=ON,STARTUP_STATE=ON) 
+GO
+
+and to read from the collected data open the file and it will give you data as well graphical view (in my case it is located at filename=N'E:MSSQL_DATAMSSQL11.MSSQLSERVERMSSQLLogDeadLocks.xel') which you can change using above code . beyond this you have to analyze and rewrite the SP to avoid deadlock situation.

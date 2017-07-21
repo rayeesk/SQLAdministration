@@ -1,0 +1,11 @@
+Determine the records that are invalid:
+
+select Responseduedate, * from cs.CPMrdoGrievances where ISDATE(Responseduedate) <> 1
+
+Test out the values returned by performing the following:
+
+DECLARE @A AS VARCHAR(25)
+
+SET @A =  '2/29/1900'  -- Whatever date is returned, set @A value to that.
+SELECT CONVERT(DATETIME,@A,120)
+-- 2/29/1900

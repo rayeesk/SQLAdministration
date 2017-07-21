@@ -1,0 +1,307 @@
+In-memory 256 GB for table size
+2 TB for data in-memory
+Checking checkpoint size 
+select * from sys.dm_db_xtp_checkpoint_files
+select object_id('SelectByID')
+select * from sys.dm_os_loaded_modules
+
+Use ODD Number of containers 
+
+Natively_compiled_slow
+
+This is a new DMB that provides the index stats: sys.dm_db_xtp_hash_index_stats
+
+IMPORTANT: avg_chain_length --> If this number is high then there is a problem with the total_bucket_count you setup. 
+select object_name(object_id) TableName, * from sys.dm_db_xtp_hash_index_stats
+
+avg_chain_length --> It's good when it's below 10
+Each bucket is 8 size --> 
+
+Monitor the information that's already in the environment
+
+This DMV provides the memory used by tables:
+select * from sys.dm_db_xtp_tab_memory_stats
+select object_name(object_id) Tablename, * from sys.dm_db_xtp_table_memory_stats --> At the index level
+
+This DMV provides you more granular information:
+select * from sys.dm_db_xtp_memory_consumers
+select object_name(object_id) Tablename, * from sys.dm_db_xtp_memory_consumers --> Table level
+
+select * from sys.dm_os_memory_clerks where type like '%xtp%' --> Database Level 
+
+select * from sys.dm_os_memory_brokers  where memory_broker_type like '%xtp%' --> Memory usage at resource pool level. There are two memory pools: 1) Internal pool that cannot be modified & 2) Default pool that can be modified. You can create more memory pools. 
+
+Pool_id 1 is always internal
+
+select * from sys.dm_os_resource_governor_resource_pools 
+
+select * from sys.dm_db_xtp_index_stats
+
+select * from sys.dm_db_xtp_nonclustered_index_stats
+
+Checkpoint Files:
+
+select * from sys.dm_db_xtp_checkpoint_files
+select * from sys.dm_db_xtp_checkpoint_stats
+dbcc loginf() --> Virtual Log File --> The more VLF's you have the larger the fragmentation you have. 
+
+User Rights Assignment for Service Account --> Perform Volume Maintenance Tasks
+
+3004
+
+Tombstone --> Stat_Desc (select * from sys.dm_db_xtp_checkpoint_files) --> This means that it's been merged and ready for pickup by garbage collector. 
+
+Two types of garbage collection --> One for memory and one for checkpoint. 
+
+
+Manually Run the Merge Operation by invoking sys.sp_xtp_merge_checkpoint_files
+
+Threshold 51% of the data file is garbage --> 50% of the rows of the data file is garbage. 
+
+Estimated execution plan can be captured but not the actual execution plan for natively compiled stored procedures and in-memory tables. 
+
+Natively compiled stored procedures are DLL's. They are very faster. 
+
+Check whether a stored procedure is natively compiled stored stored procedure
+
+run: select * from sys.sql_modules
+select object_name(object_id) name, * from sys.sql_module
+
+look at the column native compile and if it's 1 then it is a natively compiled stored procedure.
+
+select object_name(p.object_id) name, * from sys.sql_module inner join sys.procedures p on sm.object_id=p.object_id
+
+Checkpoint Files States 
+
+Precreated --> Under construction --> LOOP (Active --> Merge Source --> Merge Target--> Active --> Merger Source) -> Required for Backup/HA --> In Transition to Tombstone --> Tombstone
+
+select * from sys.partitions where object_id=object_id('t)
+
+select PartitionID, * from fn_dblog (null, null) where PartitionID = 
+(NOTE: Be careful when running the function as it utilizes too many resources)
+
+Nonclustered Index --> HEAP
+
+sp_flush_log --> Stored procedure to flush buffer to log. 
+
+Delayed Durability:
+
+Applicable for both memory-optimized and normal tables
+Durability automatically managed by SYstem behind the scenes
+Transaction flush guaranteed if:
+- Durable transaction is exectued.
+- Manually execute sp_flush_log
+
+Diagnostics:
+
+Log not being truncated
+Run this: select log_reuse_wait_desc, * from sys.databases
+
+DMV's/DMF's:
+- sys.dm_db_xtp_checkpoint_stats
+- sys.dm_db_xtp_checkpoint_files
+- sys.fn_dblog_xtop()/sys.fn_dump_log_xtp()
+
+Manual merge:
+sys.sp_xtp_merge_checkpoint_files
+eg. exec syssp_xtp_merge_checkpoint_files 'DBName' lowerbound, and uppderbound_tsn
+
+To grab the lower and upper bound run, select * from sys.dm_db_xtp_checkpoint_files
+
+select * from fun_dblog_xtp(null,null)
+
+select PartitionID, * from fn_dblog (null, null) where Operation like 
+
+Impact on RTO
+- Load speed of data
+- Size of durable tables
+
+Limit stands at 8192 data/delta file pairs per database
+- If 8192 data files were fully utilized at 128 MB a piece, it would be able to hold almost 1TB of data
+- We recommend durable table database size to be 250GB or less
+
+Larger blocksize allocations recommended for disk size
+
+Create resource pool
+
+Whenever you create a new resource governor, you need to run alter resource governor reconfigure
+
+Binding the in-memory tables in the database to a certain pool (xtp_pool)
+exec sys.sp_xtp_bind_db_resource_pool 'test'. xtp_pool
+
+bringing the database offline
+alter database test set offline
+
+alter database test set online
+
+
+Microsoft Recommendations:
+
+1) Tempdb --> 512 MB --> Initial Size --> Instant file initialization
+Autogrowth --> 512
+2) Tempdb Log --> 256 MB
+Autogrowth --> 256 MB
+3) TEMPDB files for 8 CPU's and monitor latch contention. If there are latch contention then increase it. Use extended events to monitor latch contention. Go to Management --> Extended Events --> Right-click on Sessions --> New Session --> Assign a name --> Go to Events --> type Latch --> Latch_suspend_end -->On the right side go to Filter --> select database_id and set it to 2 for tempdb and use an AND operator and select mode = --> as EX (exclusive) and use an OR operator --> select mode = -> value as UP (update) --> use an OR operator --> select mode = --> value as SH (Shared)--> use an AND operator --> page_id divisable by  -> value 8088 --> use an OR operation --> page_id =1 --> use an OR operator --> page_id = 2 --> use an OR operator --> page_id = 3
+
+Group Caluses the above clauses
+
+1 PFS 
+
+8088 PFS
+
+2 GAM
+511232 GAM
+
+3 SGAM
+511232 SGAM
+
+Each item that shows is a contention --> It had to wait to get to the get to PFS, GAM and SGAM
+
+In the results --> Right-click -> Choose Columns --> under selected columsn --> remove --> name, date --> Add --> file_id --> then select grouping --> 
+
+select file_id, size*8/1024 MB_Size, FILEPROPERTY(name, 'spaceused')*8/1024 Used_MB, * from 
+
+If the size of the NDF file size is uneven between multiple files, then SQL Server will try to access the larger files by default causing latch contention. Therefore, it is best to create all the NDF files with even size. 
+
+set statistics time to get that information
+
+
+4) Chcecking I/O
+select * from sys.dm_io_virtual_file_stats(db_id('MDWP01')), null
+
+select io_stall_read_ms*1.0/num_of_reads rl, io_stall_write_ms*1.0/num_of_writes wl, * from sys.dm_io_virtual_file_stats(2, null)
+
+It gives you the read latency and write latency in miliseconds. 
+
+5) Increase the number of checkpoint files containers to 3 at least. 
+
+6) dbcc loginfo
+
+7) cHECK INSTANT FILE INITIIALIZATION and ensure you allow Perform Volume Maintenance Tasks to the SQL Service account because if it doesn't then it will take a long to do autogrowth
+
+
+To get wait times:
+select * from sys.dm_os_wait_stats order by wait_times_ms_desc
+
+To get latch wait times
+select * from sys.dm_os_latch_stats order by wait_times
+
+8) MaxDOP needs to be set to 8
+
+9) Bucket count
+
+2 X times the number of unique values (Index Key); however, for primary key it should be just one times. 
+
+select * from sys.dm_db_xtp_hash_index_stats
+10) 
+dbcc traceon(3604)
+dbcc dbinfo
+
+
+when doing select count(*) use with (nolock) // run it with no lock
+
+Garbage Collection: 
+select * from sys.dm_db_xtp_gc_cycle_stats
+
+select * from sys.dm_xtp_gc_queue_stats
+check current_queue_depth --> if the number is high then there is something wrong with the garbage collection
+
+select * from sys.dm_xtp_gc_queue_stats  (This is the most important one)
+Rows Examined --> Sweep Needed --> parallel_assist_count --> idle_worker_count (AKA garbage collector)
+
+GC Diagnostics
+DMV's
+select * from sys.dm_xtp_gc_stats
+select * from sys.dm_xtp_gc_queue_stats
+Perform counters - XTP Garbage Collection
+Extended Events - xtpengine.gc_* --> Whenevergarbage collection is fired this event occurs
+
+Concurrency Control
+Multi-version --> Multi-version data store --> Snapshot-based transaction isolation, No TempDB
+Optimistic --> No locks, no latches, minimal context switches, No blocking --> Conflict detection to ensure isolation, No deadlocks
+
+Validation Errors and Retry Logic
+41302 --> The current transaction attempted to update a record that has been updated since the transaction started
+41305 --> The current transaction failed to commit due to a repeatable read validation failure
+41325 --> The current transaction failed to commit due to a serializable validation failure
+41301 --> A previous transaction that the current transaction took a dependency on has aborted, and the current transaction can no longer commit. 
+
+Failures causing transaction abort --> Write conflicts, validation failures
+Aborted transactions need to be retried
+Solution: implement retry logic --> Server-side retry avoids changes to client apps
+
+
+The normal value for data file is 128 MB and the delta file is 8 MB. 
+
+select sum(size_in_bytes/1024/1024) size from sys.dm_exec_cached_plans where objtype in ('prepared', 'adhoc') and usercounts=1 --> This will give you the adhoc queries that were run just once. 
+select * from sys.dm_exec_cached_plans where objtype in ('prepared','adhoc')
+
+SQL Server Properties --> Advanced --> Optimize for Ad hoc workloads --> True --> This will flush out memory used by ad hoc queries that don't run very often.
+
+3226
+
+High Availability
+
+Windows Server Failover Quorum Configuration
+Understanding Quorum COnfigurations in a Failover Cluster
+https://technet.microsoft.com/en-ca/library/cc731739.aspx
+
+Quorum: Needs a majority of vaotes to avoid split brain conditions
+
+Two-Steps to configure quorum thrhough Failover Cluster Manager:
+
+Select Which Nodes Will Vote
+- 1 vote if node's that host a replica that is currently:
+
+- Primary
+- Any auto failover target if the primary is also configured for auto failover
+- 0 votes for secondary sites nodes and non auto failover partners
+
+Select the quorum type:
+- Odd number of votes, use "NOde Majority"
+- Even number of votes, add a wintess by either:
+- Adding an additional witness node and use "Node Majority"
+- Using "Node and File Share Majority" with a protected file share
+
+Optimize Quorum Settings
+- NodeWeight settings are used during quorum voting to support disaster recovery and multi-subnet scenarios for AlwaysOn AG and SQL Server Failover Cluster Instances
+
+- Hotfix Windows Server 2008 and 2008 R2
+http://support.microsoft.com/kb/2494036
+
+Cluster.exe . node <NodeName> /prop NodeWeight=0
+
+SELECT member_name, member_state_desc, number_of_quorum_votes
+FROM sys.dm_hadr_cluster_members;
+
+
+- Note: Windows 2012 and Failover Clustering Dynamic Quorum
+
+Introducing Flexible Failover Policy (SQL Server 2012)
+- Flexible Failover Policy Provides administrators control over the conditions when an automatic failover should be initiated
+
+In SQL Server 2008 R2 --> It should a resource DLL which would select @@servername to the SQL Server. 
+
+Configure Failure COndition Levels
+You configure the Failure Conditions and Timeouts on the Cluster resource. Right-click the other resource for SQL engine or Activity Group and then go to Properties to Set it
+
+You can also use transact SQL to do it:
+ALTER SERVER CONFIGURATION
+SET FAILOVER CLUSTER PROPERTY
+FailureConditionLevel=0;
+
+Alter server configuration
+set failover cluster property
+Healthchecktimeout = 15000;
+
+You can do the above using Powershell too	
+Import-Module FailoverCluster
+$fci = "AlwaysOnSrv1"
+Get-ClusterResource $fci | Set-ClusterParameter
+FailureConditionLeve 3
+
+
+Availability Group
+Availability Replica
+Availability Database
+

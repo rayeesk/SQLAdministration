@@ -1,0 +1,3 @@
+**** Run The Stored Procedure sp_who2 to get the list of processes that are running ****
+
+sp_who2

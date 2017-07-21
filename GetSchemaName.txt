@@ -1,0 +1,3 @@
+SELECT '['+SCHEMA_NAME(schema_id)+'].['+name+']'
+AS SchemaTable
+FROM sys.tables where name like '%ESTRN_STND_REPORT_TMS%'

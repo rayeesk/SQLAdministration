@@ -1,0 +1,16 @@
+SELECT 
+        sql.text AS statement_text, session_id, status, command
+FROM 
+        sys.dm_exec_requests  AS req 
+CROSS APPLY sys.dm_exec_sql_text(req.sql_handle) as sql
+
+
+select p.spid, p.blocked,  SUBSTRING(st.text, (qs.statement_start_offset/2)+1, 
+        ((CASE qs.statement_end_offset
+          WHEN -1 THEN DATALENGTH(st.text)
+         ELSE qs.statement_end_offset
+         END - qs.statement_start_offset)/2) + 1) AS statement_text,  p.waittime, p.lastwaittype, DB_NAME(p.dbid) AS DBName, user_name(p.uid) as username, 
+p.hostname, p.loginame, p.cpu, p.physical_io, p.memusage, p.cmd 
+from sys.sysprocesses p
+inner join  sys.dm_exec_requests qs  on p.spid=qs.session_id and qs.session_id>50
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) st

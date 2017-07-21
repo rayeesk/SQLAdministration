@@ -1,0 +1,3 @@
+select object_name(a.object_id) as Table_Name, name as Index_Name, user_seeks, user_scans, system_seeks, system_scans from sys.indexes a inner join sys.dm_db_index_usage_stats b ON a.index_id = b.index_id and a.object_id = b.object_id where user_seeks < 201 AND user_scans < 201 AND system_seeks < 201 AND system_scans < 201 AND  database_id = 5 AND is_primary_key = '0'
+
+

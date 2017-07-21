@@ -1,0 +1,7 @@
+SELECT
+sp.spid , sp.hostname , sp.program_name , sp.loginame ,sp.login_time 
+, CAST(text AS VARCHAR(1000)) AS SQLScript 
+FROM
+sys.sysprocesses sp
+CROSS APPLY sys.dm_exec_sql_text (sp.sql_handle) 
+where sp.blocked <>0

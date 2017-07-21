@@ -1,0 +1,13 @@
+SELECT OBJECT_NAME(object_id) AS [ObjectName]
+      ,[name] AS [StatisticName]
+      ,STATS_DATE([object_id], [stats_id]) AS [StatisticUpdateDate]
+FROM sys.stats
+
+
+SELECT name AS stats_name, 
+    STATS_DATE(object_id, stats_id) AS statistics_update_date
+FROM sys.stats 
+WHERE OBJECT_NAME(Object_id) = 'EQPMV_TRACK_MVMNT_EVENT'
+GO
+
+SELECT OBJECT_NAME(object_id) AS [ObjectName], STATS_DATE([object_id], [stats_id]) AS [StatisticUpdateDate] from sys.stats WHERE OBJECT_NAME(Object_id) = 'EQPMV_TRACK_MVMNT_EVENT'

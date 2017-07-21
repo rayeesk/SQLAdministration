@@ -1,0 +1,4 @@
+SELECT name , [log_reuse_wait_desc]
+    FROM [master].[sys].[databases]
+   -- WHERE [name] = N'Company';
+GO

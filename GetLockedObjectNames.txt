@@ -1,0 +1,15 @@
+SELECT 
+	DB_NAME(dtl.resource_database_id) AS dbname, 
+	CASE
+           WHEN resource_type = 'object'
+               THEN OBJECT_NAME(dtl.resource_associated_entity_id)
+           ELSE OBJECT_NAME(p.OBJECT_ID)
+        END AS ObjectName,
+		dtl.request_session_id, 
+		dtl.resource_associated_entity_id,
+		dtl.resource_type,
+		dtl.resource_description, 
+		dtl.request_mode, 
+		dtl.request_status 
+FROM sys.dm_tran_locks AS dtl
+LEFT JOIN sys.partitions AS p ON p.hobt_id = dtl.resource_associated_entity_id

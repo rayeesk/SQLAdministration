@@ -1,0 +1,11 @@
+SELECT 
+deqmg.session_id,
+dest.text,
+deqmg.granted_memory_kb,
+deqmg.requested_memory_kb,
+deqmg.grant_time,
+deqmg.query_cost,
+deqmg.dop
+FROM sys.dm_exec_query_memory_grants AS deqmg
+CROSS APPLY sys.dm_exec_sql_text(deqmg.sql_handle) AS dest
+CROSS APPLY sys.dm_exec_query_plan(deqmg.plan_handle) AS deqp;

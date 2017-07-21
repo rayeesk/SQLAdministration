@@ -1,0 +1,164 @@
+1. Create a stored procedure called dbo.UpdateTop100OnTable:
+
+USE [DBNAME]
+GO
+/****** Object:  StoredProcedure [dbo].[UpdateTop100OnTable]    Script Date: 04/09/2015 18:15:48 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+CREATE PROCEDURE [dbo].[UpdateTop100OnTable] 
+	 @table_Schema as sysname,
+	 @tabname as sysname,
+     @columnName as sysname,
+     @columnValueOld as varchar(max),
+     @columnValue as varchar(max),
+     @commitRows as bigint
+AS
+BEGIN
+	
+SET NOCOUNT ON;
+declare @sql nvarchar(4000)
+declare @sql1 nvarchar(4000)
+declare @total_row as bigint
+declare @rowpoint as bigint
+DECLARE @ParmDefinition NVARCHAR(500)
+DECLARE @IntVariable INT
+DECLARE @result int
+DECLARE @keycolumns as nvarchar(1000)
+
+set @rowpoint = @commitRows
+
+set @sql1= 'select @total_rowOut=COUNT(*) from ' + @table_Schema + '.' + @tabname + ' where ' + @columnName + '=''' + @columnValueOld + ''''
+SET @ParmDefinition = N'@total_rowOut bigint OUTPUT'
+print @sql1
+exec sp_executesql @sql1,@ParmDefinition,@total_rowOut=@total_row OUTPUT
+print '@total_row=' + convert(varchar,@total_row)
+--update table
+while @total_row >0
+begin
+set @sql=' update top (' + convert(varchar,@commitRows) + ') ' + @table_Schema + '.' + @tabname + ' set ' 
++ @columnName + '=''' + @columnValue + '''' 
++ ' where ' + @columnName + '=''' + @columnValueOld + ''''
+
+print '@sql= ' + @sql
+exec sp_executesql @sql
+set @total_row=@@rowcount
+--print '@@rowcount=' + convert(varchar,@@rowcount)
+--WAITFOR DELAY '00:01:00';
+end
+end
+
+2. Create Indexes
+
+CREATE index [idx_/BIC/AZFIGLW1200~10] on [bd1].[/BIC/AZFIGLW1200] (LOGSYS)
+CREATE index [idx_/BIC/AZFIGLW3200~10] on [bd1].[/BIC/AZFIGLW3200] (LOGSYS)
+CREATE index [idx_/BIC/AZFIGLW2200~10] on [bd1].[/BIC/AZFIGLW2200] (LOGSYS)
+CREATE index [idx_/BIC/AZFIGLW1000~10] on [bd1].[/BIC/AZFIGLW1000] (LOGSYS)
+CREATE index [idx_/BIC/B0002995000~10] on [bd1].[/BIC/B0002995000] (LOGSYS)
+CREATE index [idx_/BIC/B0003075000~10] on [bd1].[/BIC/B0003075000] (LOGSYS)
+CREATE index [idx_/BIC/B0002826000~10] on [bd1].[/BIC/B0002826000] (LOGSYS)
+CREATE index [idx_/BIC/AZIMFAO0400~10] on [bd1].[/BIC/AZIMFAO0400] (LOGSYS)
+CREATE index [idx_/BIC/B0003036000~10] on [bd1].[/BIC/B0003036000] (LOGSYS)
+CREATE index [idx_/BIC/B0002994000~10] on [bd1].[/BIC/B0002994000] (LOGSYS)
+CREATE index [idx_/BIC/B0003074000~10] on [bd1].[/BIC/B0003074000] (LOGSYS)
+CREATE index [idx_/BIC/B0002825000~10] on [bd1].[/BIC/B0002825000] (LOGSYS)
+CREATE index [idx_/BIC/B0003035000~10] on [bd1].[/BIC/B0003035000] (LOGSYS)
+CREATE index [idx_/BIC/B0004060000~10] on [bd1].[/BIC/B0004060000] (DPM_LSY)
+CREATE index [idx_/BIC/AZFISL_0100~10] on [bd1].[/BIC/AZFISL_0100] (LOGSYS)
+CREATE index [idx_/BIC/AZGLO120100~10] on [bd1].[/BIC/AZGLO120100] (LOGSYS)
+CREATE index [idx_/BIC/AZGLO220100~10] on [bd1].[/BIC/AZGLO220100] (LOGSYS)
+CREATE index [idx_/BIC/AZGLO120200~10] on [bd1].[/BIC/AZGLO120200] (LOGSYS)
+CREATE index [idx_/BIC/AZGLO320100~10] on [bd1].[/BIC/AZGLO320100] (LOGSYS)
+CREATE index [idx_/BIC/AZGLO320200~10] on [bd1].[/BIC/AZGLO320200] (LOGSYS)
+CREATE index [idx_/BIC/AZGLO100100~10] on [bd1].[/BIC/AZGLO100100] (LOGSYS)
+CREATE index [idx_/BIC/AZGLO220200~10] on [bd1].[/BIC/AZGLO220200] (LOGSYS)
+CREATE index [idx_/BIC/AZGLO100200~10] on [bd1].[/BIC/AZGLO100200] (LOGSYS)
+CREATE index [idx_/BIC/AZFC_O1300~10] on [bd1].[/BIC/AZFC_O1300] (DPM_LSY)
+CREATE index [idx_/BIC/AZIMFAO0500~10] on [bd1].[/BIC/AZIMFAO0500] (LOGSYS)
+CREATE index [idx_/BIC/B0004049000~10] on [bd1].[/BIC/B0004049000] (LOGSYS)
+CREATE index [idx_/BIC/B0004057000~10] on [bd1].[/BIC/B0004057000] (DPM_LSY)
+CREATE index [idx_/BIC/B0004050000~10] on [bd1].[/BIC/B0004050000] (DPM_LSY)
+CREATE index [idx_/BIC/B0004062000~10] on [bd1].[/BIC/B0004062000] (DPM_LSY)
+CREATE index [idx_/BIC/B0002283000~10] on [bd1].[/BIC/B0002283000] (LOGSYS)
+CREATE index [idx_/BIC/AZCLM_O0200~10] on [bd1].[/BIC/AZCLM_O0200] (LOGSYS)
+CREATE index [idx_/BIC/EDIDC~10] on [bd1].[EDIDC] (SNDPRN)
+
+3. Run stored procedure to convert the tables
+use BS5
+go
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZFIGLW1200]','LOGSYS','SP1_900','SS5_900',500000 (The old, new and commit rows should be provided by BASIS)
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZFIGLW3200]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZFIGLW2200]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZFIGLW1000]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0002995000]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0003075000]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0002826000]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZIMFAO0400]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0003036000]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0002994000]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0003074000]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0002825000]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0003035000]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0004060000]','DPM_LSY','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZFISL_0100]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZGLO120100]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZGLO220100]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZGLO120200]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZGLO320100]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZGLO320200]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZGLO100100]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZGLO220200]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZGLO100200]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZFC_O1300]','DPM_LSY','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZIMFAO0500]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0004049000]','DPM_LSY','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0004057000]','DPM_LSY','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0004050000]','DPM_LSY','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0004062000]','DPM_LSY','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/B0002283000]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[/BIC/AZCLM_O0200]','LOGSYS','SP1_900','SS5_900',500000
+exec UpdateTop100OnTable 'bs5', '[EDIDC]','SNDPRN','SP1_900','SS5_900',500000
+go
+
+4. Drop Indexes
+
+USE BD1
+DROP index [idx_/BIC/AZFIGLW1200~10] on [bd1].[/BIC/AZFIGLW1200] (LOGSYS)
+DROP index [idx_/BIC/AZFIGLW3200~10] on [bd1].[/BIC/AZFIGLW3200] (LOGSYS)
+DROP index [idx_/BIC/AZFIGLW2200~10] on [bd1].[/BIC/AZFIGLW2200] (LOGSYS)
+DROP index [idx_/BIC/AZFIGLW1000~10] on [bd1].[/BIC/AZFIGLW1000] (LOGSYS)
+DROP index [idx_/BIC/B0002995000~10] on [bd1].[/BIC/B0002995000] (LOGSYS)
+DROP index [idx_/BIC/B0003075000~10] on [bd1].[/BIC/B0003075000] (LOGSYS)
+DROP index [idx_/BIC/B0002826000~10] on [bd1].[/BIC/B0002826000] (LOGSYS)
+DROP index [idx_/BIC/AZIMFAO0400~10] on [bd1].[/BIC/AZIMFAO0400] (LOGSYS)
+DROP index [idx_/BIC/B0003036000~10] on [bd1].[/BIC/B0003036000] (LOGSYS)
+DROP index [idx_/BIC/B0002994000~10] on [bd1].[/BIC/B0002994000] (LOGSYS)
+DROP index [idx_/BIC/B0003074000~10] on [bd1].[/BIC/B0003074000] (LOGSYS)
+DROP index [idx_/BIC/B0002825000~10] on [bd1].[/BIC/B0002825000] (LOGSYS)
+DROP index [idx_/BIC/B0003035000~10] on [bd1].[/BIC/B0003035000] (LOGSYS)
+DROP index [idx_/BIC/B0004060000~10] on [bd1].[/BIC/B0004060000] (DPM_LSY)
+DROP index [idx_/BIC/AZFISL_0100~10] on [bd1].[/BIC/AZFISL_0100] (LOGSYS)
+DROP index [idx_/BIC/AZGLO120100~10] on [bd1].[/BIC/AZGLO120100] (LOGSYS)
+DROP index [idx_/BIC/AZGLO220100~10] on [bd1].[/BIC/AZGLO220100] (LOGSYS)
+DROP index [idx_/BIC/AZGLO120200~10] on [bd1].[/BIC/AZGLO120200] (LOGSYS)
+DROP index [idx_/BIC/AZGLO320100~10] on [bd1].[/BIC/AZGLO320100] (LOGSYS)
+DROP index [idx_/BIC/AZGLO320200~10] on [bd1].[/BIC/AZGLO320200] (LOGSYS)
+DROP index [idx_/BIC/AZGLO100100~10] on [bd1].[/BIC/AZGLO100100] (LOGSYS)
+DROP index [idx_/BIC/AZGLO220200~10] on [bd1].[/BIC/AZGLO220200] (LOGSYS)
+DROP index [idx_/BIC/AZGLO100200~10] on [bd1].[/BIC/AZGLO100200] (LOGSYS)
+DROP index [idx_/BIC/AZFC_O1300~10] on [bd1].[/BIC/AZFC_O1300] (DPM_LSY)
+DROP index [idx_/BIC/AZIMFAO0500~10] on [bd1].[/BIC/AZIMFAO0500] (LOGSYS)
+DROP index [idx_/BIC/B0004049000~10] on [bd1].[/BIC/B0004049000] (LOGSYS)
+DROP index [idx_/BIC/B0004057000~10] on [bd1].[/BIC/B0004057000] (DPM_LSY)
+DROP index [idx_/BIC/B0004050000~10] on [bd1].[/BIC/B0004050000] (DPM_LSY)
+DROP index [idx_/BIC/B0004062000~10] on [bd1].[/BIC/B0004062000] (DPM_LSY)
+DROP index [idx_/BIC/B0002283000~10] on [bd1].[/BIC/B0002283000] (LOGSYS)
+DROP index [idx_/BIC/AZCLM_O0200~10] on [bd1].[/BIC/AZCLM_O0200] (LOGSYS)
+DROP index [idx_/BIC/EDIDC~10] on [bd1].[EDIDC] (SNDPRN)
+GO
+

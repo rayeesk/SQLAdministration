@@ -1,0 +1,1 @@
+select sum(io_pending_ms_ticks) as DiskIOWait from sys.dm_io_pending_io_requests where io_type = 'disk' 

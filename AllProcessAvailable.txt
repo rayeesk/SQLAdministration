@@ -1,0 +1,8 @@
+SELECT
+sp.spid
+, sp.blocked AS BlockingProcess
+, DB_NAME(sp.dbid) AS DatabaseName
+, sp.loginame
+, CAST(text AS VARCHAR(1000)) AS SqlStatement
+FROM sys.sysprocesses sp
+CROSS APPLY sys.dm_exec_sql_text (sp.sql_handle)

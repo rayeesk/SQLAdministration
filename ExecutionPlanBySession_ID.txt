@@ -1,0 +1,9 @@
+select r.*, s.*, p.* from sys.dm_exec_requests r
+cross apply sys.dm_exec_sql_text(r.sql_handle) s
+cross apply sys.dm_exec_query_plan(r.plan_handle) p
+where r.session_id = 293
+
+--2016-08-30 14:32:40.307
+--CPU 15003
+--READS 10787
+--Granted Memory - 550642

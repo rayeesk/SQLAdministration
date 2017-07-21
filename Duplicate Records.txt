@@ -1,0 +1,3 @@
+/****** Script for SelectTopNRows command from SSMS  ******/
+SELECT stor_dtm, msg_seq_nr, COUNT(*)
+  FROM [MDWP02].[ATM_TYES].[AUTO_RPTG_MSG_LOG] GROUP BY stor_dtm, msg_seq_nr HAVING COUNT(*) > 1

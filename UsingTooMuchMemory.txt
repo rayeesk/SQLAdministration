@@ -1,0 +1,116 @@
+USE [msdb]
+GO
+
+/****** Object:  Job [SQL using too much memory]    Script Date: 10/19/2016 10:51:08 PM ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+/****** Object:  JobCategory [[Uncategorized (Local)]]    Script Date: 10/19/2016 10:51:08 PM ******/
+IF NOT EXISTS (SELECT name FROM msdb.dbo.syscategories WHERE name=N'[Uncategorized (Local)]' AND category_class=1)
+BEGIN
+EXEC @ReturnCode = msdb.dbo.sp_add_category @class=N'JOB', @type=N'LOCAL', @name=N'[Uncategorized (Local)]'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+
+END
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'SQL using too much memory', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'No description available.', 
+		@category_name=N'[Uncategorized (Local)]', 
+		@owner_login_name=N'sa', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [send email]    Script Date: 10/19/2016 10:51:09 PM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'send email', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'Declare @theSubject varchar(100) = ''SQL Using Too Much Memory on server '' + @@servername;
+DECLARE @tableHTML  VARCHAR(MAX) ;
+
+SET @tableHTML =
+ N''<style type="text/css">''+
+ N''.h1 {font-family: Arial, verdana;font-size:16px;border:0px;background-color:white;} ''+
+ N''.h2 {font-family: Arial, verdana;font-size:12px;border:0px;background-color:white;} ''+
+ N''body {font-family: Arial, verdana;} ''+
+ N''table{font-size:12px; border-collapse:collapse;} ''+
+ N''td{background-color:#F1F1F1; border:1px solid black; padding:3px;} ''+
+ N''th{background-color:#99CCFF;}''+
+ N''</style>''+
+ N''<table border="0">''+
+ N''<tr><td class="h1">SQL Using Too Much Memory</td></tr>'' +
+ N''<tr><td class="h2">AS OF ''+convert(varchar(50),getdate(),101) + '' ''+convert(varchar(50),getdate(),108)+N''</td></tr>''+
+ N''</table>''+
+ N''<table border="1" bordercolorlight="#FFFFFF" bordercolordark="#FFFFFF">''+
+ N''<tr><th>SessionID</th>''+
+ N''<th>LoginName</th>'' +
+ N''<th>HostName</th>'' +
+ N''<th>requested_memory_kb</th>'' +
+ N''<th>granted_memory_kb</th>'' +
+ N''<th>mg.used_memory_kb</th>'' +
+ N''<th>SQL Statement</th>''+
+ N''</tr>'' +
+ CAST ( ( SELECT 
+					"td/@style"=''border: 1px solid #FFFFFF;'',
+					td = mg.session_id,'''',
+					"td/@style"=''border: 1px solid #FFFFFF;'',
+					 td=se.login_name,'''',
+					"td/@style"=''border: 1px solid #FFFFFF;'',
+					 td=se.host_name,'''',
+					"td/@style"=''border: 1px solid #FFFFFF;'',
+					 td=mg.requested_memory_kb,'''',
+					"td/@style"=''border: 1px solid #FFFFFF;'',
+					 td=mg.granted_memory_kb,'''',
+					"td/@style"=''border: 1px solid #FFFFFF;'',
+					 td=mg.used_memory_kb,'''',
+					"td/@style"=''border: 1px solid #FFFFFF;'',
+					 td=t.text,''''
+FROM sys.dm_exec_query_memory_grants AS mg
+CROSS APPLY sys.dm_exec_sql_text(mg.sql_handle) AS t
+CROSS APPLY sys.dm_exec_query_plan(mg.plan_handle) AS qp
+left outer join sys.dm_exec_sessions se on se.session_id=mg.session_id
+where mg.requested_memory_kb>52428800
+ORDER BY 1 
+    FOR XML PATH(''tr''), TYPE 
+    ) AS NVARCHAR(MAX) ) +
+    N''</table>'' + ''<br> Thanks!<br>'' + CAST(( select GETDATE() FOR XML PATH(''tr''), TYPE) AS NVARCHAR(MAX));
+if @tableHTML is not null 
+if CHARINDEX(''>RPMRPT</td>'',@tableHTML,0)>0
+EXEC msdb.dbo.sp_send_dbmail @recipients=''Dan_Ho@cpr.ca; Shailesh_Yerram@cpr.ca; Oliver_Kim@cpr.ca;Anup_Gondkar@cpr.ca; Andres_Silva@cpr.ca;Laszlo_Cseh@cpr.ca;Aashti_Kahlon@cpr.ca;Jason_Holmgren@cpr.ca;Steven_Gao@cpr.ca; Dhanya_Jayakumar@cpr.ca;Rayees_Khan@cpr.ca; Vamshi_Varagani@cpr.ca'',
+    @subject = @theSubject,
+    @body = @tableHTML,
+    @body_format = ''HTML''
+else
+exec msdb.dbo.sp_send_dbmail @recipients=''Dan_Ho@cpr.ca; Shailesh_Yerram@cpr.ca; Anup_Gondkar@cpr.ca; Steven_Gao@cpr.ca; Dhanya_Jayakumar@cpr.ca;Rayees_Khan@cpr.ca; Vamshi_Varagani@cpr.ca'',
+    @subject = @theSubject,
+    @body = @tableHTML,
+    @body_format = ''HTML'';
+
+', 
+		@database_name=N'MDWP01', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+
+GO
+
+
